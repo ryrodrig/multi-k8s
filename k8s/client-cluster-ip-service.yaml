@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+   name: client-cluster-ip-service
+spec:
+   # clusterIP is a restrictive nodePort service, where it allows access to the pod/deployment only from other pods within the cluster/node.
+   type: ClusterIP
+   selector:
+   # matches the deployment/pod label.
+      component: web
+   ports:
+      # port exposed outside.
+      - port: 3000
+        targetPort: 3000
+        # there is no nodeport as clusterIP is not used to allow access to the outside world.   

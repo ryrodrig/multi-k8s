@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: worker-deployment
+spec:
+   replicas: 1
+   selector:
+   # handle for deployment.
+      matchLabels:
+         component: worker
+   template:
+      metadata:
+         labels:
+            component: worker
+      spec:
+         containers:
+            - name: worker
+              image: stephengrider/multi-worker
+              # no port needed as no one will access this container.. only outgoing call.
+              env:
+                 - name: REDIS_HOST
+                 # maps to the clusterIP name in the redis-cluster-ip-service.yaml.
+                   value: redis-cluster-ip-service
+                 - name: REDIS_PORT
+                   value: '6379' 
+                 
+                 

@@ -1,0 +1,16 @@
+apiVersion: v1
+# advertise the options of the volumes that pods can use. Not an actual volume ??
+kind: PersistentVolumeClaim
+metadata:
+   name: database-persistent-volume-claim
+spec:
+# how can the POD access the volume.. Kubernetes will need to find an instance of storage that has this access.
+# ReadWriteOnce - can  read or write by a single node at a time.
+# ReadOnlyMany - multiple nodes can read but only one can write
+# ReadWriteMany - Multiple read / multiple write at a time.
+   accessModes:
+      - ReadWriteOnce
+   resources:
+      requests:
+      # kubernetes should provide 2Gi of persistence.
+         storage: 2Gi

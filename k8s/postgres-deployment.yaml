@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: postgres-deployment
+spec:
+# incrementing the replicas , creates 2 postgres  containers but it can cause data issue.. other config are needed to handle such situation.
+   replicas: 1
+   selector:
+   # handle for deployment.
+      matchLabels:
+         component: postgres
+   template:
+      metadata:
+         labels:
+            component: postgres
+      spec:
+      # determines where the data would be stored ( persistent volume )
+         volumes:
+            - name: postgres-storage
+              persistentVolumeClaim:
+                 claimName: database-persistent-volume-claim
+         containers:
+            - name: postgres
+              image: postgres
+              env:
+                 # configuring custom password from secret object.
+                 # check server-deployment.yaml for details on secret object.
+                 - name: PGPASSWORD
+                   valueFrom:
+                      secretKeyRef:
+                         name: pgpassword
+                         key: PGPASSWORD
+              ports:
+                 - containerPort: 5432
+              volumeMounts:
+                 - name: postgres-storage
+                 # where in the container the storage should be made avail. ref, like docker volume.
+                   mountPath: /var/lib/postgresql/data
+                   # any data stored in the mountPath will be stored in the PV under "postgres" folder.
+                   subPath: postgres  
+                 

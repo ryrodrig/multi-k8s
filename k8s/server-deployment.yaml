@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: server-deployment
+spec:
+   replicas: 3
+   selector:
+   # handle for deployment.
+      matchLabels:
+         component: server
+   template:
+      metadata:
+         labels:
+            component: server
+      spec:
+         containers:
+            - name: server
+              image: stephengrider/multi-server
+              ports:
+                 - containerPort: 5000
+              env:   
+                 - name: REDIS_HOST
+                 # maps to the clusterIP name in the redis-cluster-ip-service.yaml.
+                   value: redis-cluster-ip-service
+                 - name: REDIS_PORT
+                   value: '6379' 
+                 - name: PGUSER
+                   value: postgres
+                 - name: PGHOST
+                   value: postgres-cluster-ip-service
+                 - name: PGPORT
+                   value: '5432'
+                 - name: PGDATABASE
+                   value: postgres
+                   # name used within our application
+                 - name: PGPASSWORD
+                 # indicates read the value from a 'secret' object
+                 # secret object is created using an imperitive command line , like as below -
+                 # format -  kubectl create secret generic <secret name> -- from literal <key>=<value>
+                 # generic is a <type of secret> - other options are tls,  docker-registry
+                 # <secret name> indicates the name of the secret.
+                 # -- from literal indicates that the key value would be provided from the command line as opposed to via file.
+                 # <Key>=<value> : key with the password.
+                 # kubectl create secret generic pgpassword --from-literal PGPASSWORD=trustno1
+                   valueFrom:
+                      secretKeyRef:
+                      # maps to <secret name>
+                         name: pgpassword
+                         # Maps to <key> within the secret.
+                         key: PGPASSWORD  
+                              
