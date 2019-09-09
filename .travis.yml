@@ -1,10 +1,19 @@
+# travis file to deploy to google cloud.
 # using docker
 sudo: required
 # need docker to be pre installed.
 services:
   - docker
-
+env:
+   global:
+      # assign SHA (every git commit creates a id). Assign that git commit ID to SHA env which would be used in the deploy scripts
+      # when deploying version changes to GC kubernetes cluster.
+      - SHA=$(git rev-parse HEAD)
+      # disable command prompts in GCLOUD.. Esp warning when the commands in the before install are run
+      - CLOUDSDK_CORE_DISABLE_PROMPTS=1
 before_install:
+  # generated when the file is encrypted by travis CI CLI. 
+  - openssl aes-256-cbc -K $encrypted_0c35eebf403c_key -iv $encrypted_0c35eebf403c_iv -in service-account.json.enc -out service-account.json -d
 # setup google cloud locally on dev.
   - curl https://sdk.cloud.google.com | bash > dev/null;
   - source $HOME/google-cloud-sdk/path.bash.inc
@@ -14,32 +23,34 @@ before_install:
   # service-account.json - contains the user details which is encrypted and pushed to travis.
   # inorder to encrypt json file you will need to install travis cli locally
   - gcloud auth activate-service-account --key-file service-account.json
-  # generated when the file is encrypted.
-  - openssl aes-256-cbc -K $encrypted_0c35eebf403c_key -iv $encrypted_0c35eebf403c_iv -in service-account.json.enc -out service-account.json -d
+  # need to tell google cloud which porject to use ( need to use the ID)
+  - gcloud config set project multi-k8s-252120
+  # which zone
+  - gcloud config set compute/zone us-east1-b
+  # which cluster to work with incase we need to run kubectl commands.	
+  - gcloud container clusters get-credentials multi-cluster
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # build the client project and tag it as react-test
+  - docker build -t rodrr301/react-test -f ./client/Dockerfile.dev ./client
+  
 
 script:
+   # run the test
   - docker run rodrr301/react-test npm test -- --coverage
 
 after_success:
-  - docker build -t rodrr301/multi-client ./client
-  - docker build -t rodrr301/multi-nginx ./nginx
-  - docker build -t rodrr301/multi-server ./server
-  - docker build -t rodrr301/multi-worker ./worker
-  # Log in to the docker CLI
+  
+  
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
   # Take those images and push them to docker hub
-  - docker push rodrr301/multi-client
-  - docker push rodrr301/multi-nginx
-  - docker push rodrr301/multi-server
-  - docker push rodrr301/multi-worker
+  
 
 deploy:
-  provider: elasticbeanstalk
-  region: us-east-2
-  app: multi-docker
-  env: MultiDocker-env
-  bucket_name: elasticbeanstalk-us-east-2-175860741103
-  bucket_path: docker-multi
+   # run the script fie below
+  provider: script
+  script: bash ./deploy.sh
+  #  only run when moved to master.
   on:
     branch: master
   access_key_id: $AWS_ACCESS_KEY
